@@ -1,15 +1,14 @@
 //SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.14;
+pragma solidity 0.8.13;
 
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/access/Ownable.sol";
 
-contract Apprenantmap is Ownable{
+contract courStructure is Ownable{
     struct Apprenant{
         string name;
         uint note;
     }
 
-    Apprenant[] apprenants;
     mapping(address=>Apprenant) appMapping;
     Apprenant[] apprenantsArray;
 
@@ -19,6 +18,23 @@ contract Apprenantmap is Ownable{
     }
 
     function delApprenantMapping(address _addr) public onlyOwner{
-        appMapping[_addr] = Apprenant("",0);
+        delete appMapping[_addr];
+    }
+
+    function addAppArray(string calldata _name, uint _note) public onlyOwner{
+        apprenantsArray.push(Apprenant(_name,_note));
+    }
+
+    function setAppArray(uint _id, string calldata _name, uint _note)  public onlyOwner{
+        require(apprenantsArray.length > _id ,"L'apprenant n'existe pas.");
+        apprenantsArray[_id] = Apprenant(_name,_note);
+    }
+
+    function delLastAppArray()  public onlyOwner{
+        apprenantsArray.pop();
+    }
+
+    function deleteAllAppArray()  public onlyOwner{
+        delete apprenantsArray;
     }
 }
