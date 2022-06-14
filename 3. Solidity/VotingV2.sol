@@ -38,12 +38,12 @@ contract Voting is Ownable{
     uint winningProposalId;
 
     WorkflowStatus workflowStatus = WorkflowStatus.RegisteringVoters;
-    address[] whitelist;
 
     Proposal[] proposalArray;
     mapping(address=>Voter) votersMap;
 
     constructor() {
+        //Prise en compte du vote blanc 
         proposalArray.push(Proposal("Vote Blanc",0));
         workflowStatus = WorkflowStatus.RegisteringVoters;
     }
@@ -53,7 +53,6 @@ contract Voting is Ownable{
         require(whitelistArray.length > 0,"La liste est vide ou incorrecte.");
         require(workflowStatus == WorkflowStatus.RegisteringVoters,unicode"Le workflow n'est pas à l'état d'enregistrement des votants.");
         for(uint i = 0; i< whitelistArray.length; i++  ){
-            whitelist.push(whitelistArray[i]);
             votersMap[whitelistArray[i]].isRegistered = true;
             emit VoterRegistered(whitelistArray[i]);
         }
@@ -62,14 +61,12 @@ contract Voting is Ownable{
     function addWhitelist(address _addr) public onlyOwner{
         //Verification du workflowstatus
         require(workflowStatus == WorkflowStatus.RegisteringVoters,unicode"Le workflow n'est pas à l'état d'enregistrement des votants.");
-        whitelist.push(_addr);
         votersMap[_addr].isRegistered = true;
         emit VoterRegistered(_addr);
     }
 
     function startProposaleRegistration() public onlyOwner {
         require(workflowStatus == WorkflowStatus.RegisteringVoters,unicode"Le workflow n'est pas à l'état d'enregistrement des votants.");
-        require(whitelist.length >0,unicode"Il n'y à pas de votant enregistré.");
         workflowStatus = WorkflowStatus.ProposalsRegistrationStarted;
         emit WorkflowStatusChange(WorkflowStatus.RegisteringVoters,WorkflowStatus.ProposalsRegistrationStarted);
     }
@@ -118,21 +115,13 @@ contract Voting is Ownable{
         emit ProposalRegistered(proposalArray.length-1);
     }
 
-    //Verifie si une adresse est whitelisté
-    function checkAddressWhiteListed(address _addr) view private returns( bool result){
-        for(uint i=0;i < whitelist.length ;i++){
-            if(_addr == whitelist[i]&& votersMap[_addr].isRegistered){
-                result = true;
-                break;
-            }
-        }
-        return result;
-    }
-
     function voteProposal(uint _proposalId) public {
         require(workflowStatus == WorkflowStatus.VotingSessionStarted,"Les inscriptions ne sont pas ouvertes.");
+        require(proposalArray.length > _proposalId -1,unicode"La proposal n'existe pas.");
+
         //Verification si le votant est bien autorisé
-        require(checkAddressWhiteListed(msg.sender), unicode"Vous n'êtes pas autorisé à voter.");
+        require(votersMap[msg.sender].isRegistered, unicode"Vous n'êtes pas autorisé à voter.");
+        require(votersMap[msg.sender].hasVoted, unicode"Vous avez déjà voté.");
         //Enregistrement du vote
         proposalArray[_proposalId].voteCount = proposalArray[_proposalId].voteCount +1 ;
         votersMap[msg.sender].hasVoted = true;
@@ -141,27 +130,15 @@ contract Voting is Ownable{
     }
 
     //Renvoie le vote effectué par les votants pour une proposition donnée
-    function getVotesByProposalId(uint _proposalId) view public returns(address[] memory results){
+    function getVotesByVoterAddress(address _addr) view public returns(Voter memory){
+        //On garde le vote confidentiel, jusqu'a la fermeture des votes
         require(workflowStatus == WorkflowStatus.VotesTallied, unicode"Le calcul du vote n'à pas été effectué!");
-
-        for(uint i=0;i < whitelist.length ;i++){
-            if(votersMap[whitelist[i]].hasVoted && votersMap[whitelist[i]].votedProposalId == _proposalId){
-                //On récupère la proposition (c'est largement optimisable niveau gas)
-                results[results.length] = whitelist[i];
-            }
-        }
-        return results;
+        require(votersMap[_addr].isRegistered,unicode"L'adresse n'est pas whitelisté");
+        return votersMap[_addr];
     }
 
-    //Renvoie la liste de adresses whitelisté
-    function getWhitelist() view public onlyOwner returns(address[] memory result){
-        result = whitelist;
-        return result;
-    }
-
-    function getProposalList() view public returns(Proposal[] memory result){
-        result = proposalArray;
-        return result;
+    function getProposalList() view public returns(Proposal[] memory ){
+        return proposalArray;
     }
 
 }
