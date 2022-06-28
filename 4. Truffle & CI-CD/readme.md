@@ -5,19 +5,33 @@
   Contract: Voting
         Test des ajouts de votants, events et onlyOwners
           ✓ refuse les appels des fonctions onlyOwner par des non-Owner. (1979ms)
+          
           ✓ peux enregistrer les votants en whiteliste. (148ms, 50196 gas)
+          
           ✓ ajoute des votants (203ms, 100380 gas)
+          
           ✓ bloque les changement interdits du workflowstatus (220ms)
+          
           ✓ peux changer le workflowstatus de Register vers ProposalsRegistrationStarted (196ms, 47653 gas)
+          
           ✓ bloque l ajout de votant en WorkflowStatus ProposalsRegistrationStarted (45ms)
+          
           ✓ bloque l ajout de proposal pour les non votant (57ms)
+          
           ✓ ajoute une proposal (580ms, 136344 gas)
+          
           ✓ change le WorkFlowStatus pour endProposalsRegistrationEnded (137ms, 30575 gas)
+          
           ✓ change le WorkFlowStatus pour VotingSessionStarted (268ms, 30530 gas)
+          
           ✓ refuser le vote a un non votant (48ms)
+          
           ✓ refuser le vote sur une proposition non existante (63ms)
+          
           ✓ permet a un votant de voter (701ms, 197027 gas)
+          
           ✓ change le workflowstatus pour VotingSessionEnded (62ms, 30509 gas)
+          
           ✓ change le statut  pour tallied (81ms, 60637 gas)
 
     ·------------------------------------------|----------------------------|-------------|----------------------------·
