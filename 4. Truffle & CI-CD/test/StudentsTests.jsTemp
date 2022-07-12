@@ -1,0 +1,57 @@
+const Students = artifacts.require("./Students.sol");
+
+contract("Students",accounts=>{
+    let StudentsInstance = 
+
+    before(async function(){
+        StudentsInstance = await Students.new({from:owner});
+    })
+
+    it("....should store the value 89", async()=>{
+        const studentsInstance = await StudentsInstance.deployed();
+
+        // set etudiant
+        await studentsInstance.setEtudiant({from:accounts[0]},"Jean-Pierre",15);
+
+        //get stored value
+        const storedData = await studentsInstance.getEtudiant({from:accounts[0]}).call();
+
+        it('a un nom', async ()=> {
+            expect(await this.StudentsInstance.nom()).to.equal("Jean-Pierre");
+            expect(await this.StudentsInstance.note()).to.equal(15);
+        });
+        
+        await studentsInstance.deletedStudent({from:accounts[0]}).call();
+
+
+
+        const deletedStudents = await studentsInstance.getEtudiant({from:accounts[0]}).call(); 
+        //On supprime un étudiant
+        it('a ete supprime', async function(){
+            expect(await this.StudentsInstance.nom().to.equal(""))
+        });
+
+        
+        //setClasse
+        await studentsInstance.setClasse(Classe.sixieme);
+
+
+        //get classe
+        const classe = await studentsInstance.getClasse().call();
+
+        it('a change la classe', async function(){
+           // expect(await this.classe.to.equal(
+        
+                //setClasse
+                await studentsInstance.setClasse(Classe.sixieme);
+        
+        
+                //get classe
+                await studentsInstance.getClasse().call();
+        })
+
+
+
+
+    })
+});
