@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 const SimpleStorage = artifacts.require("SimpleStorage");
 
 module.exports = async(deployer) =>{
@@ -8,5 +9,4 @@ module.exports = async(deployer) =>{
   await instance.set(18);
   const value2 =  await instance.get();
   console.log("Deuxieme instance : " + value2); 
-
 }
