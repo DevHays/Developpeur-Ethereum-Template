@@ -1,0 +1,87 @@
+button,
+[role="button"],
+input[type="submit"],
+input[type="reset"],
+input[type="button"] {
+  border: none;
+  border-radius: 5px;
+  background: var(--accent);
+  font-size: 1rem;
+  color: var(--bg);
+  padding: 0.7rem 0.9rem;
+  margin: 0.5rem 0;
+}
+
+button[disabled],
+[role="button"][aria-disabled="true"],
+input[type="submit"][disabled],
+input[type="reset"][disabled],
+input[type="button"][disabled],
+input[type="checkbox"][disabled],
+input[type="radio"][disabled],
+select[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+input:disabled,
+textarea:disabled,
+select:disabled {
+  cursor: not-allowed;
+  background-color: var(--disabled);
+}
+
+input[type="range"] {
+  padding: 0;
+}
+
+/* Set the cursor to '?' while hovering over an abbreviation */
+abbr {
+  cursor: help;
+}
+
+button:focus,
+button:enabled:hover,
+[role="button"]:focus,
+[role="button"]:not([aria-disabled="true"]):hover,
+input[type="submit"]:focus,
+input[type="submit"]:enabled:hover,
+input[type="reset"]:focus,
+input[type="reset"]:enabled:hover,
+input[type="button"]:focus,
+input[type="button"]:enabled:hover {
+  filter: brightness(1.4);
+  cursor: pointer;
+}
+
+/* Format tables */
+table {
+    border-collapse: collapse;
+    display: block;
+    margin: 1.5rem 0;
+    overflow: auto;
+    width: 100%;
+  }
+  
+  td,
+  th {
+    border: 1px solid var(--border);
+    text-align: left;
+    padding: 0.5rem;
+  }
+  
+  th {
+    background: var(--accent-bg);
+    font-weight: bold;
+  }
+  
+  tr:nth-child(even) {
+    /* Set every other cell slightly darker. Improves readability. */
+    background: var(--accent-bg);
+  }
+  
+  table caption {
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+  }
+

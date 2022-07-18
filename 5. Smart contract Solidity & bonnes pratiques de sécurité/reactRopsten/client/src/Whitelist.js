@@ -1,30 +1,34 @@
 import React from 'react';
 import './Whitelist.css';
 
+///@author  chays
 export default class Whitelist extends React.Component {
-    state = {addressesWL:null,web3:null,contactOwnerAddress:null}
+    state = {addressesWL:null,web3:null}
 
     componentDidMount = async() =>{
+        const {  web3,votingInstance } = this.props.state;
+        let options = {
+            fromBlock: 0,                  //Number || "earliest" || "pending" || "latest"
+            toBlock: 'latest'
+        };
+        let options1 = {
+            fromBlock: 'latest',                  //Number || "earliest" || "pending" || "latest"
+        };
+        
         try{
-            const {  web3,votingInstance,contractOwnerAddress } = this.props.state;
-            let options = {
-                fromBlock: 0,                  //Number || "earliest" || "pending" || "latest"
-                toBlock: 'latest'
-            };
-            let options1 = {
-                fromBlock: 'latest',                  //Number || "earliest" || "pending" || "latest"
-            };
+
+            let addresseList = await votingInstance.getPastEvents('VoterRegistered', options);
             
-            let listAddress = await votingInstance.getPastEvents('VoterRegistered', options);
-            
-            votingInstance.events.VoterRegistered(options1).on('data', event => {listAddress.push(event); this.setState({addressesWL:listAddress})});
-            this.setState({addressesWL:listAddress, web3:web3, contractOwnerAddress:contractOwnerAddress});
+            votingInstance.events.VoterRegistered(options1).on('data', event => {addresseList.push(event); this.setState({addressesWL:addresseList})});
+            this.setState({addressesWL:addresseList, web3:web3});
         }catch (error) {
             alert(error.message);
             console.error(error);
           }
     }
 
+    ///Add an address to the whitelist
+    ///
     addWhitelist = async () => {
         try{
             // Get network provider and web3 instance.
@@ -33,7 +37,7 @@ export default class Whitelist extends React.Component {
             let whiteListAddr=document.getElementById("whiteListAddr").value;
             //Check address format
             let addressValeur = web3.utils.toChecksumAddress(whiteListAddr);
-            const transac = await votingInstance.methods.addVoter(addressValeur).send({from: accounts[0]});
+            await votingInstance.methods.addVoter(addressValeur).send({from: accounts[0]});
         }catch(error){
             alert(
                 error.message,
@@ -44,7 +48,7 @@ export default class Whitelist extends React.Component {
     
     render(){
         //Only Accessible to Admin
-        if(this.state.web3 && this.props.addr[0] === this.state.contractOwnerAddress){
+        if(this.state.web3 && this.props.addr[0] === this.props.state.contractOwnerAddress){
             const totalVotersToRender = this.state.addressesWL.filter(addresse => addresse.returnValues.voterAddress);
             const numTotalVoters = totalVotersToRender.length;
             return(

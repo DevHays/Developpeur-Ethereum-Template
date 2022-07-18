@@ -2,8 +2,8 @@ import React from 'react';
 import './FlowStatus.css';
 
 export default class FlowStatus extends React.Component {
-    state = {statuschanges:null,web3:null,actualStatus:null,actualStatusLabel:"", contractOwnerAddress:null}
-
+    state = { }
+    
     workFlowStatus = [
         'RegisteringVoters',
         'ProposalsRegistrationStarted',
@@ -23,23 +23,8 @@ export default class FlowStatus extends React.Component {
             let options1 = {
                 fromBlock: 'latest',                  //Number || "earliest" || "pending" || "latest"
             };
-            
-            let listStatusChange = await votingInstance.getPastEvents('WorkflowStatusChange', options);
-            let actualStatusId = await votingInstance.methods.workflowStatus().call();
-            let actualStatusLabel = "";
-            //Checking if it is a number
-            if(!isNaN(actualStatusId)){
-                actualStatusLabel = this.workFlowStatus[Number(this.state.actualStatus)];
-                this.setState({actualStatus:actualStatusId,actualStatusLabel:actualStatusLabel})
-            }
 
-            votingInstance.events.WorkflowStatusChange(options1).on('data', event => {
-                listStatusChange.push(event);
-                console.log(event);
-                this.setState({actualStatus:event.newStatus});
-            });
-
-            this.setState({web3:web3,statuschanges:listStatusChange,contractOwnerAddress:contractOwnerAddress});
+            this.setState({web3:web3});
         }catch (error) {
             // Catch any errors for any of the above operations.
             alert(
@@ -51,29 +36,37 @@ export default class FlowStatus extends React.Component {
 
 
 
+    ///
     goNextStatus = async () => {
         // Get network provider and web3 instance.
-        const { accounts,votingInstance } = this.props.state;
+        const { accounts,votingInstance, actualStatus  } = this.props.state;
+        
         //Suivant le statut ou l'on est on fait appel à l'appel vers le status suivant
-        console.log(this.state.actualStatusLabel);
         try{
-            switch(this.state.actualStatusLabel){
-                case 'RegisteringVoters' :
+            switch(actualStatus){
+                case 0 :
                     votingInstance.methods.startProposalsRegistering().send({ from: accounts[0]});
                     break;
-                case 'ProposalsRegistrationStarted' :
-                    await votingInstance.methods.endProposalsRegistering({ from: accounts[0]}).call();
-                case 'ProposalsRegistrationEnded' : 
-                    await votingInstance.methods.startVotingSession({ from: accounts[0]}).call();
-                case 'VotingSessionStarted':
-                    await votingInstance.methods.endVotingSession({ from: accounts[0]}).call();
-                case 'VotingSessionEnded':
-                    await votingInstance.methods.tallyVotes({ from: accounts[0]}).call();
-                case 'VotesTallied' :
+                case 1 :
+                    await votingInstance.methods.endProposalsRegistering().send({ from: accounts[0]});
+                    break;
+                case 2 : 
+                    await votingInstance.methods.startVotingSession().send({ from: accounts[0]});
+                    break;
+                case 3:
+                    await votingInstance.methods.endVotingSession().send({ from: accounts[0]});
+                    break
+                case 4:
+                    await votingInstance.methods.tallyVotes().send({ from: accounts[0]});
+                    break;
+                case 5 :
                     alert('The vote is over');
+                    break;
                 default :
                     alert('Please, reinitiate your FlowStatus');
+                    break;
             }
+
         }catch(error){
             alert(error.message);
             console.error(error);
@@ -84,26 +77,31 @@ export default class FlowStatus extends React.Component {
     render(){
 
         //Only Accessible to Admin
-
-        if(this.state.web3 && this.props.addr[0] === this.state.contractOwnerAddress){
-            console.log("ON sapprete a faire le retrun");
+        console.log("props Status",this.props);
+        if(this.props.state.web3 &&  this.props.state.statusChanges && this.props.addr[0] === this.props.state.contractOwnerAddress){
             return(
 
             <div className="FlowStatus">
                 <h2>Admin Only</h2>
                 <p>Manage FlowStatus</p>
-                <p>We are currently in <i>{this.state.actualStatusLabel}</i> status.</p>
-                <button onClick={this.goNextStatus}>Go to next Status</button>
+                <button onClick={this.goNextStatus}>Change Status For {this.workFlowStatus[Number(this.props.state.actualStatus)+1]  }</button>
                 <table>
                     <thead> 
                         <tr>
-                            <th>Test</th>
+                            <th>From</th>
+                            <th>To</th>
+                            <th>Date</th>
                         </tr>
                     </thead>
                     <tbody>
-                       {/* {this.state.statuschange.map((addresse) => (
-                            <tr key={addresse.returnValues.voterAddress}><td>{addresse.returnValues.voterAddress}</td></tr>
-                       ))}*/}
+                       {
+                       this.props.state.statusChanges.map((statusChange) => (
+                            <tr key={statusChange.transactionHash}>
+                                <td><i>{this.workFlowStatus[Number(statusChange.returnValues.previousStatus)]}</i></td>
+                                <td><i>{this.workFlowStatus[Number(statusChange.returnValues.newStatus)] }</i></td>
+                                <td>{this.props.state.blockDates[statusChange.blockNumber]}</td>
+                            </tr>
+                       ))}
                     </tbody>
                 </table>
             </div>

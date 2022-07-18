@@ -7,11 +7,22 @@ import FlowStatus from "./FlowStatus";
 import Whitelist from "./Whitelist";
 
 import "./App.css";
+import Proposition from "./Proposition";
 
 
 class App extends Component {
   state = { web3: null, accounts: null, contract: null, addresses: null ,
-    votingInstance:null, whiteLists:null, userBalance:0, contractOwnerAddress : null};
+    votingInstance:null, whiteLists:null, userBalance:0, contractOwnerAddress : null, 
+    statusChanges:null, actualStatus: null, blockDates: [], voter:null};
+  
+  workFlowStatus = [
+    'RegisteringVoters',
+    'ProposalsRegistrationStarted',
+    'ProposalsRegistrationEnded',
+    'VotingSessionStarted',
+    'VotingSessionEnded',
+    'VotesTallied'
+]
 
   componentDidMount = async () => {
     try {
@@ -29,17 +40,11 @@ class App extends Component {
         deployedNetwork && deployedNetwork.address,
       );
 
-
       const deployedVotingContractNetWork = VotingContract.networks[networkId];
       const votingContract = new web3.eth.Contract(
         VotingContract.abi,
         deployedVotingContractNetWork && deployedVotingContractNetWork.address,
       );
-
-      //Get the owner of the wallet balance
-      let balance  = await web3.eth.getBalance(accounts[0]);
-      balance = web3.utils.fromWei(balance,'ether');
-      balance = Math.round(balance * 100) / 100;
 
       let options = {
         fromBlock: 0,                  //Number || "earliest" || "pending" || "latest"
@@ -50,14 +55,51 @@ class App extends Component {
         fromBlock: 'latest',                  //Number || "earliest" || "pending" || "latest"
       };
 
-      let listAddress = await instance.getPastEvents('dataStored', options);
+      //Get Status Infos
+      let actualStatusId = await votingContract.methods.workflowStatus().call();
+      //Checking if it is a number
+      if(!isNaN(actualStatusId)){
+        this.setState({actualStatus:Number(actualStatusId)})
+      }
 
+      let listAddress = await instance.getPastEvents('dataStored', options);
       instance.events.dataStored(options1).on('data', event => listAddress.push(event));
 
+      let listStatusChange = await votingContract.getPastEvents('WorkflowStatusChange', options);
+
+      //Retrieve and store the txs timestamp
+      listStatusChange.map(statusChange =>{
+          let result = this.getAndStoreEventTimestamp(statusChange,web3);
+          return result ;
+      });
+
+      votingContract.events.WorkflowStatusChange(options1).on('data', event => {   
+        let statusChanges = this.state.statusChanges;
+        this.getAndStoreEventTimestamp(event);
+        statusChanges.push(event);         
+        this.setState({actualStatus:Number(event.returnValues.newStatus),statusChanges:statusChanges});
+      });
+
+      //Get the owner of the wallet balance
+      let balance  = await web3.eth.getBalance(accounts[0]);
+      balance = web3.utils.fromWei(balance,'ether');
+      balance = Math.round(balance * 100) / 100;
+
+      //Getting owner's contract address
       let contractOwnerAddressTemp = await votingContract.methods.owner().call();
-      // Set web3, accounts, and contract to the state, and then proceed with an
-      // example of interacting with the contract's methods.
-      this.setState({  web3 : web3, accounts, contract: instance, addresses:listAddress, votingInstance:votingContract, userBalance:balance, contractOwnerAddress : contractOwnerAddressTemp });
+
+      //retrieve the voter object
+      try{
+        //A little cheat on the caller address because onlyVoters is 
+        let _voter = await votingContract.methods.getVoter(accounts[0]).call({from:contractOwnerAddressTemp});
+        this.setState({voter:_voter});  
+      }catch(error){
+          console.error(error);
+      }
+
+      this.setState({  web3 : web3, accounts, contract: instance, addresses:listAddress, 
+        votingInstance:votingContract, userBalance:balance, contractOwnerAddress : contractOwnerAddressTemp,
+        statusChanges:listStatusChange });
     } catch (error) {
       // Catch any errors for any of the above operations.
       alert(
@@ -67,25 +109,34 @@ class App extends Component {
     }
   };
 
+    
+  ///@notice Retrieve and store the timeStamp of an event
+  async getAndStoreEventTimestamp(event,web3){
+      //Get the tx timeStamp
+      let blockInfos = await web3.eth.getBlock(event.blockNumber);
+      let blockDate = this.state.blockDates;
+      const milliseconds = blockInfos.timestamp * 1000;
+      let dateLabel = new Date(milliseconds).toLocaleDateString("en-GB") + " " + new Date(milliseconds).toLocaleTimeString();
+      blockDate[Number(event.blockNumber)] = dateLabel;
+      this.setState({blockDates:blockDate});
+  }
+
   render() {
     if (!this.state.web3) {
       return <div>Loading Web3, accounts, and contract...</div>;
     }
-    const status = "En cours";
-
     return (
       <div className="App">
-        <Address addr={this.state.accounts} balance={this.state.userBalance} />        
+        <Address addr={this.state.accounts} voter={this.state.voter} balance={this.state.userBalance} />        
         <h1>Voting DApp TP3!</h1>
-        <h2>We are currently in <i>{status}</i> status.</h2>
-
-        {/*I would have like to do it in a cleaner way, letting my component have access
-        to the state of App */}
+        <h2>Actual Status :  {this.workFlowStatus[Number(this.state.actualStatus)]}</h2>
+        <button onClick={this.hideWiteList}>Hide Whitelist</button>
         <table>
           <tbody>
             <tr>
-              <td><Whitelist addr={this.state.accounts} state={this.state} /></td>
+              <td><Whitelist addr={this.state.accounts} state={this.state}   /></td>
               <td><FlowStatus addr={this.state.accounts}  state={this.state} /></td>
+              <td><Proposition state={this.state} /></td>
             </tr>
           </tbody>
         </table>
