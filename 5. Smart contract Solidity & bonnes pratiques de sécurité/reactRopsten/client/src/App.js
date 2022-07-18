@@ -13,7 +13,7 @@ import Proposition from "./Proposition";
 class App extends Component {
   state = { web3: null, accounts: null, contract: null, addresses: null ,
     votingInstance:null, whiteLists:null, userBalance:0, contractOwnerAddress : null, 
-    statusChanges:null, actualStatus: null, blockDates: [], voter:null};
+    statusChanges:null, actualStatus: null, blockDates: [], voters:[],voter:null};
   
   workFlowStatus = [
     'RegisteringVoters',
@@ -22,7 +22,7 @@ class App extends Component {
     'VotingSessionStarted',
     'VotingSessionEnded',
     'VotesTallied'
-]
+  ]
 
   componentDidMount = async () => {
     try {
@@ -73,9 +73,9 @@ class App extends Component {
           return result ;
       });
 
-      votingContract.events.WorkflowStatusChange(options1).on('data', event => {   
+      await votingContract.events.WorkflowStatusChange(options1).on('data', event => {   
         let statusChanges = this.state.statusChanges;
-        this.getAndStoreEventTimestamp(event);
+        this.getAndStoreEventTimestamp(event,web3);
         statusChanges.push(event);         
         this.setState({actualStatus:Number(event.returnValues.newStatus),statusChanges:statusChanges});
       });
@@ -87,19 +87,35 @@ class App extends Component {
 
       //Getting owner's contract address
       let contractOwnerAddressTemp = await votingContract.methods.owner().call();
-
+      let _voter;
       //retrieve the voter object
       try{
         //A little cheat on the caller address because onlyVoters is 
-        let _voter = await votingContract.methods.getVoter(accounts[0]).call({from:contractOwnerAddressTemp});
+        console.log(contractOwnerAddressTemp);
+        _voter = await votingContract.methods.getVoter(accounts[0]).call({from:contractOwnerAddressTemp});
+        console.log("_voter",_voter);
         this.setState({voter:_voter});  
       }catch(error){
+          //*** ToDo catch the error when an adress is not a voter yet */
           console.error(error);
       }
 
+      //retrieve votes
+      let _votes = await votingContract.getPastEvents('Voted', options)
+      console.log("Votes", _votes);
+      votingContract.events.Voted(options1).on('data', event => {   
+        console.log(this.state.voter);
+        let _voters = [...this.state.voter];
+
+        _voters.push(event.returnValues.voter);         
+        this.setState({voters:_voters});
+          
+      });
+
+
       this.setState({  web3 : web3, accounts, contract: instance, addresses:listAddress, 
         votingInstance:votingContract, userBalance:balance, contractOwnerAddress : contractOwnerAddressTemp,
-        statusChanges:listStatusChange });
+        statusChanges:listStatusChange, voters:_votes,voter:_voter });
     } catch (error) {
       // Catch any errors for any of the above operations.
       alert(
@@ -111,9 +127,9 @@ class App extends Component {
 
     
   ///@notice Retrieve and store the timeStamp of an event
-  async getAndStoreEventTimestamp(event,web3){
+  async getAndStoreEventTimestamp(event,_web3){
       //Get the tx timeStamp
-      let blockInfos = await web3.eth.getBlock(event.blockNumber);
+      let blockInfos = await _web3.eth.getBlock(event.blockNumber);
       let blockDate = this.state.blockDates;
       const milliseconds = blockInfos.timestamp * 1000;
       let dateLabel = new Date(milliseconds).toLocaleDateString("en-GB") + " " + new Date(milliseconds).toLocaleTimeString();
@@ -125,17 +141,24 @@ class App extends Component {
     if (!this.state.web3) {
       return <div>Loading Web3, accounts, and contract...</div>;
     }
+    console.log("this.stat",this.state);
     return (
       <div className="App">
-        <Address addr={this.state.accounts} voter={this.state.voter} balance={this.state.userBalance} />        
+        <Address addr={this.state.accounts} state={this.state} balance={this.state.userBalance} />        
         <h1>Voting DApp TP3!</h1>
-        <h2>Actual Status :  {this.workFlowStatus[Number(this.state.actualStatus)]}</h2>
+        <h2>Actual Status :  <i>{this.workFlowStatus[Number(this.state.actualStatus)]}</i></h2>
         <button onClick={this.hideWiteList}>Hide Whitelist</button>
         <table>
           <tbody>
             <tr>
               <td><Whitelist addr={this.state.accounts} state={this.state}   /></td>
               <td><FlowStatus addr={this.state.accounts}  state={this.state} /></td>
+            </tr>
+          </tbody>
+        </table>
+        <table>
+          <tbody>
+            <tr>
               <td><Proposition state={this.state} /></td>
             </tr>
           </tbody>

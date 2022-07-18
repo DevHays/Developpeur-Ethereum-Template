@@ -43,6 +43,28 @@ export default class Proposition extends React.Component{
                 });
             });
 
+            votingInstance.events.Voted(options1).on('data',event =>{
+                console.log("voted",event);
+                //update of the proposal voted
+                let proposalObject = votingInstance.methods.getOneProposal(Number(event.returnValues.proposalId)).call({from: accounts[0]});
+                
+                proposalObject.then( result => {
+                    //Add the proposalId
+                    console.log(result);
+                    console.log(this.state.updatedProposalList);
+                    this.state.updatedProposalList.map(proposal =>
+                        {
+                            if(proposal.returnValues.proposalId){
+                                return result;
+                            }else{
+                                return result;
+                            }
+                            
+                        });
+                })
+            }
+            );
+
             this.setState({ web3:web3,updateProposalList:updatedProposalList});
         }catch (error) {
             alert(error.message);
@@ -50,7 +72,7 @@ export default class Proposition extends React.Component{
           }
     }
 
-    ///@dev send proposal to the smart contract thats is listened by this component.
+    ///@notice send proposal to the smart contract thats is listened by this component.
     addProposal = async() => {
         try{
             // Get network provider and web3 instance.
@@ -66,27 +88,43 @@ export default class Proposition extends React.Component{
         }
     }
 
+    ///@notice Retrieve and store the timeStamp of an event
+    async vote(proposalId){
+        // Get network provider and web3 instance.
+        const { accounts,votingInstance } = this.props.state;
+        votingInstance.methods.setVote(Number(proposalId)).send({from:accounts[0]});
+    }
+
     render(){
         if(this.props.state.web3 && this.state.updateProposalList){
+            const isProposalsRegistrationStarted = this.props.state.actualStatus === 1;
+            const isVotingSessionStarted = this.props.state.actualStatus === 3;
             return(
                 <div  className="Proposition">
                     <h2>Proposal</h2>
-                    <p>Submit your proposal :</p>
-                    <input type="textarea" id="proposalText"/>
-                    <button onClick={this.addProposal}>Add to the Whitelist</button>
+                    {isProposalsRegistrationStarted?
+                        (<div>
+                            <p>Submit your proposal :</p>
+                            <input type="textarea" id="proposalText"/>
+                            <button onClick={this.addProposal}>Submit proposal</button>
+                        </div>):
+                        ""
+                    }
+
                     <table>
                         <thead> 
                             <tr>
                                 <th>Description</th>
                                 <th>Votes</th>
-                                <th>Id</th>
+                                {isVotingSessionStarted?(<th>Vote</th>):""}
                             </tr>
                         </thead>
                         <tbody>
                             {this.state.updateProposalList.map((proposal) => (
                                 <tr key={proposal[2]}><td>{proposal[0]}</td>
                                 <td>{proposal[1]}</td>
-                                <td>{proposal[2]}</td></tr>
+                                {isVotingSessionStarted?(<td><button onClick={()=>this.vote(proposal[2])}>Vote</button></td>):""}
+                                </tr>
                             ))}
                         </tbody>
 

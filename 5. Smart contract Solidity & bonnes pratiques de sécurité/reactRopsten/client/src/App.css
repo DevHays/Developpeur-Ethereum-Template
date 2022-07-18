@@ -54,3 +54,22 @@ body {
   text-align: center;
   border-radius: 10px;
 }
+
+th, td {
+  text-align: left;
+  padding: 8px;
+  width:100%;
+}
+
+td{
+  background-color: #C2FFF9;
+}
+
+tr:nth-child(even) {
+  background-color: Lightgreen;
+}
+
+tr:nth-child(odd) {
+  background-color: #C2FFF9;
+}
+

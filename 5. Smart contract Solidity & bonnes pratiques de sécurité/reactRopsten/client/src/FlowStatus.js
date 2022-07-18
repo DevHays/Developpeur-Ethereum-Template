@@ -13,15 +13,13 @@ export default class FlowStatus extends React.Component {
         'VotesTallied'
     ]
 
-
-
-
-    ///
+    ///@notice Call the smart contract next workflow status
     goNextStatus = async () => {
         // Get network provider and web3 instance.
         const { accounts,votingInstance, actualStatus  } = this.props.state;
         
         //Suivant le statut ou l'on est on fait appel à l'appel vers le status suivant
+        //Could be improve with an array containing all calls, but don't know wich one would be better
         try{
             switch(actualStatus){
                 case 0 :
@@ -57,13 +55,12 @@ export default class FlowStatus extends React.Component {
     render(){
 
         //Only Accessible to Admin
-        console.log("props Status",this.props);
         if(this.props.state.web3 &&  this.props.state.statusChanges && this.props.addr[0] === this.props.state.contractOwnerAddress){
             return(
 
             <div className="FlowStatus">
                 <h2>Admin Only</h2>
-                <p>Manage FlowStatus</p>
+                <p>Change the status of the voting</p>
                 <button onClick={this.goNextStatus}>Change Status For {this.workFlowStatus[Number(this.props.state.actualStatus)+1]  }</button>
                 <table>
                     <thead> 

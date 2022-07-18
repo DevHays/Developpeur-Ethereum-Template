@@ -52,12 +52,16 @@ export default class Whitelist extends React.Component {
         if(this.state.web3 && this.props.addr[0] === this.props.state.contractOwnerAddress){
             const totalVotersToRender = this.state.addressesWL.filter(addresse => addresse.returnValues.voterAddress);
             const numTotalVoters = totalVotersToRender.length;
+            //Status 0 = registeringVoters
+            const isRegisteringVoters = this.props.state.actualStatus === 0;
             return(
                 <div  className="Whitelist">
                     <h2>Admin Only</h2>
                     <p>Add an adress to the whitelist</p>
-                    <input type="text" id="whiteListAddr"/>
-                    <button onClick={this.addWhitelist}>Add to the Whitelist</button>
+                    
+                    {isRegisteringVoters?
+                        (<div><input type="text" id="whiteListAddr"/><button onClick={this.addWhitelist}>Add to the Whitelist</button></div>)
+                        :("")}
                     <table>
                         <thead> 
                             <tr>
