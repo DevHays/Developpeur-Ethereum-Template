@@ -13,26 +13,6 @@ export default class FlowStatus extends React.Component {
         'VotesTallied'
     ]
 
-    componentDidMount = async() =>{
-        try{
-            const {  web3,votingInstance, contractOwnerAddress } = this.props.state;
-            let options = {
-                fromBlock: 0,                  //Number || "earliest" || "pending" || "latest"
-                toBlock: 'latest'
-            };
-            let options1 = {
-                fromBlock: 'latest',                  //Number || "earliest" || "pending" || "latest"
-            };
-
-            this.setState({web3:web3});
-        }catch (error) {
-            // Catch any errors for any of the above operations.
-            alert(
-              `Failed to load web3, accounts, or contract. Check console for details.`,
-            );
-            console.error(error);
-          }
-    }
 
 
 

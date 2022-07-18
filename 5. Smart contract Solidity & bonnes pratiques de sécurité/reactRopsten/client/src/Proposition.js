@@ -1,7 +1,8 @@
-import { resolve } from 'path';
+
 import React from 'react';
 import './Proposition.css';
 
+///@author  chays
 ///@title Display and allow users to submit proposal and vote for it
 export default class Proposition extends React.Component{
     state = { proposalList:[], blockDates:[],updateProposalList:[]}
@@ -20,10 +21,9 @@ export default class Proposition extends React.Component{
         try{
             let updatedProposalList =this.state.updateProposalList ;
             let proposalList = await votingInstance.getPastEvents('ProposalRegistered', options);
-            let proposalIdTemp;
+
             //Retrieve and store the txs timestamp
-            proposalList.map(proposal =>{
-                proposalIdTemp = proposal.proposalId;
+            proposalList.forEach(proposal =>{
                 let proposalObject = votingInstance.methods.getOneProposal(Number(proposal.returnValues.proposalId)).call({from: accounts[0]});
                 proposalObject.then( result => {
                     //Add the proposalId
@@ -34,7 +34,6 @@ export default class Proposition extends React.Component{
             });
             
             votingInstance.events.ProposalRegistered(options1).on('data', event => {
-                proposalIdTemp = event.proposalId;
                 let proposalObject = votingInstance.methods.getOneProposal(Number(event.returnValues.proposalId)).call({from: accounts[0]});
                 proposalObject.then( result => {
                     //Add the proposalId

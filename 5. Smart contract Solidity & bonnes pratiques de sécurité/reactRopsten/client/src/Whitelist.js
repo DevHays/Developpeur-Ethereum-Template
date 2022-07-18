@@ -2,6 +2,7 @@ import React from 'react';
 import './Whitelist.css';
 
 ///@author  chays
+///@title Display and allow contract owner to submit addresses in the whitelist and show existing WL addresses
 export default class Whitelist extends React.Component {
     state = {addressesWL:null,web3:null}
 
@@ -16,7 +17,7 @@ export default class Whitelist extends React.Component {
         };
         
         try{
-
+            //I didn't knew if i should place this code here or in App
             let addresseList = await votingInstance.getPastEvents('VoterRegistered', options);
             
             votingInstance.events.VoterRegistered(options1).on('data', event => {addresseList.push(event); this.setState({addressesWL:addresseList})});
@@ -27,8 +28,7 @@ export default class Whitelist extends React.Component {
           }
     }
 
-    ///Add an address to the whitelist
-    ///
+    ///@notice Add an address to the whitelist
     addWhitelist = async () => {
         try{
             // Get network provider and web3 instance.
@@ -46,6 +46,7 @@ export default class Whitelist extends React.Component {
         }
     }
     
+    ///@notice display whitelist form
     render(){
         //Only Accessible to Admin
         if(this.state.web3 && this.props.addr[0] === this.props.state.contractOwnerAddress){
