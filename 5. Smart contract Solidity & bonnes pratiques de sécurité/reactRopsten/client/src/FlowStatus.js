@@ -56,12 +56,13 @@ export default class FlowStatus extends React.Component {
 
         //Only Accessible to Admin
         if(this.props.state.web3 &&  this.props.state.statusChanges && this.props.addr[0] === this.props.state.contractOwnerAddress){
+            const voteIsOver = this.props.state.actualStatus === 5 ;
             return(
 
             <div className="FlowStatus">
                 <h2>Admin Only</h2>
                 <p>Change the status of the voting</p>
-                <button onClick={this.goNextStatus}>Change Status For {this.workFlowStatus[Number(this.props.state.actualStatus)+1]  }</button>
+                <button disabled={voteIsOver} onClick={this.goNextStatus} >Change Status For {this.workFlowStatus[Number(this.props.state.actualStatus)+1]  }</button>
                 <table>
                     <thead> 
                         <tr>

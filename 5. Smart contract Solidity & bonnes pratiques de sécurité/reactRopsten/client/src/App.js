@@ -1,19 +1,33 @@
 import React, { Component } from "react";
-import SimpleStorageContract from "./contracts/SimpleStorage.json";
 import VotingContract from "./contracts/Voting.json"
 import getWeb3 from "./getWeb3";
 import Address from "./Address.js";
 import FlowStatus from "./FlowStatus";
 import Whitelist from "./Whitelist";
-
-import "./App.css";
 import Proposition from "./Proposition";
+import "./App.css";
 
 
+///@author chays
+///@title Master component of the App, his jobs is to retrieve, and listen to the smartcontract. He is also in charge of displaying others components and providing them an updated state
 class App extends Component {
-  state = { web3: null, accounts: null, contract: null, addresses: null ,
-    votingInstance:null, whiteLists:null, userBalance:0, contractOwnerAddress : null, 
-    statusChanges:null, actualStatus: null, blockDates: [], voters:[],voter:null};
+  state = { web3: null,
+    accounts: null, 
+    contract: null, 
+    addresses: null,
+    votingInstance:null, 
+    whiteLists:null, 
+    userBalance:0, 
+    contractOwnerAddress : null, 
+    statusChanges:null, 
+    actualStatus: null, 
+    blockDates: [], 
+    voters:null,
+    voter:null,
+    addressesWL:[],
+    winningProposal:null};
+  
+  
   
   workFlowStatus = [
     'RegisteringVoters',
@@ -34,11 +48,6 @@ class App extends Component {
 
       // Get the contract instance.
       const networkId = await web3.eth.net.getId();
-      const deployedNetwork = SimpleStorageContract.networks[networkId];
-      const instance = new web3.eth.Contract(
-        SimpleStorageContract.abi,
-        deployedNetwork && deployedNetwork.address,
-      );
 
       const deployedVotingContractNetWork = VotingContract.networks[networkId];
       const votingContract = new web3.eth.Contract(
@@ -56,27 +65,44 @@ class App extends Component {
       };
 
       //Get Status Infos
-      let actualStatusId = await votingContract.methods.workflowStatus().call();
+      let actualStatusId = parseInt(await votingContract.methods.workflowStatus().call());
       //Checking if it is a number
       if(!isNaN(actualStatusId)){
+        if(parseInt(actualStatusId) === parseInt(5)){
+          const winningID = await votingContract.methods.winningProposalID().call();
+          let winningProposal = await votingContract.methods.getOneProposal(winningID).call({from: accounts[0]});
+          this.setState({winningProposal:winningProposal});
+        }
         this.setState({actualStatus:Number(actualStatusId)})
       }
 
-      let listAddress = await instance.getPastEvents('dataStored', options);
-      instance.events.dataStored(options1).on('data', event => listAddress.push(event));
 
       let listStatusChange = await votingContract.getPastEvents('WorkflowStatusChange', options);
-
-      //Retrieve and store the txs timestamp
+      
+      
       listStatusChange.map(statusChange =>{
           let result = this.getAndStoreEventTimestamp(statusChange,web3);
+          //We update the winner if the voteTallied status is active.
           return result ;
       });
 
-      await votingContract.events.WorkflowStatusChange(options1).on('data', event => {   
+      await votingContract.events.WorkflowStatusChange(options1).on('data',  async event => {   
         let statusChanges = this.state.statusChanges;
         this.getAndStoreEventTimestamp(event,web3);
-        statusChanges.push(event);         
+        statusChanges.push(event);
+        
+        //Update winner info if workflow status is votetallied
+        //Get Status Infos
+        let actualStatusId = parseInt( await votingContract.methods.workflowStatus().call());
+        //Checking if it is a number
+        if(!isNaN(actualStatusId)){
+          if(parseInt(actualStatusId) === parseInt(5)){
+            const winningID = await votingContract.methods.winningProposalID().call();
+            let winningProposal = await votingContract.methods.getOneProposal(winningID).call({from: accounts[0]});
+            this.setState({winningProposal:winningProposal});
+          }
+        }
+        
         this.setState({actualStatus:Number(event.returnValues.newStatus),statusChanges:statusChanges});
       });
 
@@ -91,31 +117,35 @@ class App extends Component {
       //retrieve the voter object
       try{
         //A little cheat on the caller address because onlyVoters is 
-        console.log(contractOwnerAddressTemp);
         _voter = await votingContract.methods.getVoter(accounts[0]).call({from:contractOwnerAddressTemp});
-        console.log("_voter",_voter);
         this.setState({voter:_voter});  
       }catch(error){
           //*** ToDo catch the error when an adress is not a voter yet */
           console.error(error);
       }
 
-      //retrieve votes
-      let _votes = await votingContract.getPastEvents('Voted', options)
-      console.log("Votes", _votes);
-      votingContract.events.Voted(options1).on('data', event => {   
-        console.log(this.state.voter);
-        let _voters = [...this.state.voter];
+      // Retrieve adding whistlists addresses
+      let addresseList= [];
+      try{
+        addresseList = await votingContract.getPastEvents('VoterRegistered', options);
+        votingContract.events.VoterRegistered(options1).on('data', event => {addresseList.push(event); this.setState({addressesWL:addresseList})});
+        this.setState({addressesWL:addresseList});
+      }catch (error) {
+          alert(error.message);
+          console.error(error);
+      }
 
-        _voters.push(event.returnValues.voter);         
+      //retrieve votes
+      let _votes = await votingContract.getPastEvents('Voted', options)     
+      votingContract.events.Voted(options1).on('data', event => {   
+        let _voters = this.state.voters;
+        _voters.push(event);         
         this.setState({voters:_voters});
-          
       });
 
-
-      this.setState({  web3 : web3, accounts, contract: instance, addresses:listAddress, 
+      this.setState({  web3 : web3, accounts, 
         votingInstance:votingContract, userBalance:balance, contractOwnerAddress : contractOwnerAddressTemp,
-        statusChanges:listStatusChange, voters:_votes,voter:_voter });
+        statusChanges:listStatusChange, voters:_votes,voter:_voter,addressesWL:addresseList });
     } catch (error) {
       // Catch any errors for any of the above operations.
       alert(
@@ -124,7 +154,6 @@ class App extends Component {
       console.error(error);
     }
   };
-
     
   ///@notice Retrieve and store the timeStamp of an event
   async getAndStoreEventTimestamp(event,_web3){
@@ -139,27 +168,26 @@ class App extends Component {
 
   render() {
     if (!this.state.web3) {
-      return <div>Loading Web3, accounts, and contract...</div>;
+      return <div>Loading Web3, accounts, and contract... Maybe your wallet is not connected ?</div>;
     }
-    console.log("this.stat",this.state);
     return (
       <div className="App">
-        <Address addr={this.state.accounts} state={this.state} balance={this.state.userBalance} />        
+        <Address addr={ this.state.accounts } state={ this.state } balance={ this.state.userBalance } />        
         <h1>Voting DApp TP3!</h1>
-        <h2>Actual Status :  <i>{this.workFlowStatus[Number(this.state.actualStatus)]}</i></h2>
-        <button onClick={this.hideWiteList}>Hide Whitelist</button>
+        <h2>Actual Status :  <i>{ this.workFlowStatus[ Number( this.state.actualStatus ) ]}</i></h2>
+        <button onClick={ this.hideWiteList }>Hide Whitelist</button>
         <table>
           <tbody>
             <tr>
-              <td><Whitelist addr={this.state.accounts} state={this.state}   /></td>
-              <td><FlowStatus addr={this.state.accounts}  state={this.state} /></td>
+              <td><Whitelist addr={ this.state.accounts } state={ this.state }   /></td>
+              <td><FlowStatus addr={ this.state.accounts }  state={ this.state } /></td>
             </tr>
           </tbody>
         </table>
         <table>
           <tbody>
             <tr>
-              <td><Proposition state={this.state} /></td>
+              <td><Proposition state={ this.state } /></td>
             </tr>
           </tbody>
         </table>
