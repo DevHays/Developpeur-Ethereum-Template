@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Truffle project with SimpleStorage contract",
   "main": "truffle-config.js",
-  "homepage": ".",
   "dependencies": {
     "@openzeppelin/contracts": "^4.7.0",
     "@truffle/hdwallet-provider": "^2.0.10"

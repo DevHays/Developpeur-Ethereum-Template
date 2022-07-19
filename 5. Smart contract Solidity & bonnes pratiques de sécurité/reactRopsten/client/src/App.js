@@ -175,7 +175,6 @@ class App extends Component {
         <Address addr={ this.state.accounts } state={ this.state } balance={ this.state.userBalance } />        
         <h1>Voting DApp TP3!</h1>
         <h2>Actual Status :  <i>{ this.workFlowStatus[ Number( this.state.actualStatus ) ]}</i></h2>
-        <button onClick={ this.hideWiteList }>Hide Whitelist</button>
         <table>
           <tbody>
             <tr>
